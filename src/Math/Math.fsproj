@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="LinearAlgebra/VectorSpace.fs" />
+    <Compile Include="LinearAlgebra/LinearAlgebra.fs" />
+    <Compile Include="Analysis/ComplexAnalysis.fs" />
+    <Compile Include="Combinatorics/GraphTheory.fs" />
+    <Compile Include="Optimization/CombinatorialOptimization.fs" />
+  </ItemGroup>
+</Project>
