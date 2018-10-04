@@ -4,8 +4,8 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Analysis/ComplexAnalysis.fs" />
-    <Compile Include="Combinatorics/GraphTheory.fs" />
-    <Compile Include="Optimization/CombinatorialOptimization.fs" />
+    <Compile Include="SingleThreaded/Vectors.fs" />
+    <Compile Include="SingleThreaded/Matrices.fs" />
+    <Compile Include="SingleThreaded/BasicMatrixOperations.fs" />    
   </ItemGroup>
 </Project>
