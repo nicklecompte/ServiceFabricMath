@@ -4,6 +4,6 @@ Math, written with concurrency as a priority, intended to be run on Service Fabr
 
 Specifically: we are using fairly slow, immutable, functional-first numerical algorithms, which are by design non-optimal and very non-BLAS. In exchange, we get free thread-safety and can "outsource" computations to separate processors (virtual or physical) without having to do tedious state management. A sketch of the architecture:
 
-* a 
+* no clue lol, give me a minute.
 
 A most in-progressiest work-in-progress.
