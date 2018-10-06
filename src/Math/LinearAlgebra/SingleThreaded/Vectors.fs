@@ -20,7 +20,8 @@ with
             {for i in 0..(x.length - 1) do 
                 yield (
                         if x.nonzeroIndices.Contains(i) then x.nonzeroValues.[i] 
-                        else Unchecked.defaultof<'T>)}
+                        else Unchecked.defaultof<'T>)
+            }
         ).GetEnumerator()
 
     interface IEnumerable with
