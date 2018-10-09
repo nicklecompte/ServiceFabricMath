@@ -8,12 +8,45 @@ module ServiceFabricMath.Math.LinearAlgebra.Vectors
 open System.Collections
 open System.Collections.Generic
 
+/// Extra static extensions to Array for ease of use.
+module Array =
+    let inline sumPair (ar1:^T array) (ar2: ^T array) : ^T array 
+            when ^T : (static member (+) : ^T* ^T -> ^T) =
+        ar1 |> Array.zip ar2 |> Array.map (fun (a,b) -> a + b)
+
+    let inline productPair (ar1:^T array) (ar2: ^T array) : ^T array 
+            when ^T : (static member (*) : ^T* ^T -> ^T) =
+        ar1 |> Array.zip ar2 |> Array.map (fun (a,b) -> a * b)
+
+
+/// <summary>Storage type for sparse vectors, using mutable 
+/// hashed key collections to determine membership and values.</summary>
+/// <param name="length"> length of the array. </param>
+/// <param name="nonzeroIndices"> HashSet saying which (0)-based indices are nonzero. </param>
+/// <param name="nonzeroValues"> Dictionary of nonzero values. </param>
 type SparseArray<'T when 'T : struct> = {
     length: int
     nonzeroIndices : HashSet<int>
     nonzeroValues : Dictionary<int,'T>
 }
 with
+
+    member x.Add(index:int,item:'T) : unit =
+        if x.nonzeroIndices.Contains(index) then invalidArg "index" (sprintf "index %i is already nonzero" index)
+        x.nonzeroIndices.Add(index)
+        x.nonzeroValues.Add(index,item)
+
+    member x.DeepCopy() : SparseArray<'T> =
+        let indexAr = Array.zeroCreate (x.nonzeroIndices.Count)
+        x.nonzeroIndices.CopyTo(indexAr)
+        let newIndexHashSet = new HashSet<int>()
+        let newDict = new Dictionary<int, 'T>()
+        indexAr |> Array.iter(fun v -> newIndexHashSet.Add(v) |> ignore
+                                       newDict.Add(v,x.nonzeroValues.[v]))
+        {length=x.length;nonzeroIndices=newIndexHashSet;nonzeroValues=newDict}
+        
+
+
     interface IEnumerable<'T> with
         member x.GetEnumerator() : IEnumerator<'T> =
         (seq 
@@ -26,27 +59,12 @@ with
 
     interface IEnumerable with
         member x.GetEnumerator() = (x :> IEnumerable<'T>).GetEnumerator() :> IEnumerator
-        // let mutable curIndex = 0
-        // {
-        //     new IEnumerator<'T> with
-        //         member y.MoveNext() =
-        //             if curIndex = x.length - 1 then false
-        //             else
-        //                 curIndex <- curIndex + 1
-        //                 true
-        //         member y.Current
-        //             with get() =
-        //                 if x.nonzeroIndices.Contains(curIndex)
-        //                     then x.nonzeroValues.[curIndex] :> obj
-        //                 else Unchecked.defaultof<'T> :> obj
-        //         member y.Current() = y.Current
-        //         member __.Reset() =
-        //             curIndex <- 0
-        //         //member y.Current() = y.Current
-        // }
-        // member x.GetEnumerator() : IEnumerator<'T> =
 
-    member x.ToArray() : 'T array = failwith "not done"
+    member x.ToArray() : 'T array = 
+        Array.init (x.length) (fun i -> 
+                                if x.nonzeroIndices.Contains(i) then x.nonzeroValues.[i]
+                                else Unchecked.defaultof<'T>)
+        
 
 type ColumnVector< ^T when 
         ^T : (static member (+) :  ^T * ^T -> ^T ) and 
@@ -136,6 +154,38 @@ with
                     let tmpDict = new Dictionary<int, ^T>()
                     sumAndV1KVP |> Array.iter(fun (a,b) -> tmpDict.Add(a,b))
                     v2NotInV1 |> Array.iter(fun a -> tmpDict.Add(a,v2.nonzeroValues.[a]))
+                    tmpDict
+                let newHashset = new HashSet<int>(v1IndexArray |> Array.append(v2NotInV1))
+                SparseColumn ({length = v1.length;nonzeroIndices = newHashset; nonzeroValues = newDict})
+
+    static member inline (-) ((vec1: ColumnVector< ^T >), (vec2: ColumnVector< ^T> )) : ColumnVector< ^T> =
+        if vec1.Dimension <> vec2.Dimension then (invalidArg "vec1,vec2" "vectors must be the same length to add them")
+        match (vec1,vec2) with
+            | (DenseColumn v1,DenseColumn v2) ->
+                Array.init v1.Length (fun ind -> v1.[ind] - v2.[ind]) |> DenseColumn
+            | (DenseColumn v1, SparseColumn v2) ->
+                Array.init v1.Length (fun ind -> 
+                                        if v2.nonzeroIndices.Contains(ind) then v1.[ind] - v2.nonzeroValues.[ind]
+                                        else v1.[ind]) |> DenseColumn
+            | (SparseColumn v1, DenseColumn v2) ->
+                Array.init v2.Length (fun ind -> 
+                                        if v1.nonzeroIndices.Contains(ind) then v1.nonzeroValues.[ind] - v2.[ind]
+                                        else LanguagePrimitives.GenericZero< ^T> - v2.[ind]) |> DenseColumn            
+            | (SparseColumn v1, SparseColumn v2) ->
+                let v1IndexArray = Array.zeroCreate (v1.nonzeroIndices.Count)
+                v1.nonzeroIndices.CopyTo(v1IndexArray)
+                let sumAndV1KVP = 
+                    v1IndexArray 
+                    |> Array.map(fun index -> (index, if v2.nonzeroIndices.Contains(index) then v1.nonzeroValues.[index] - v2.nonzeroValues.[index]
+                                                      else v1.nonzeroValues.[index]))
+                let v2IndexdArray = Array.zeroCreate (v2.nonzeroIndices.Count)
+                v2.nonzeroIndices.CopyTo(v2IndexdArray)
+                let v2NotInV1 = 
+                    v2IndexdArray |> Array.filter(fun a -> not (v1.nonzeroIndices.Contains(a)))
+                let newDict = 
+                    let tmpDict = new Dictionary<int, ^T>()
+                    sumAndV1KVP |> Array.iter(fun (a,b) -> tmpDict.Add(a,b))
+                    v2NotInV1 |> Array.iter(fun a -> tmpDict.Add(a,LanguagePrimitives.GenericZero< ^T> - v2.nonzeroValues.[a]))
                     tmpDict
                 let newHashset = new HashSet<int>(v1IndexArray |> Array.append(v2NotInV1))
                 SparseColumn ({length = v1.length;nonzeroIndices = newHashset; nonzeroValues = newDict})
@@ -231,3 +281,54 @@ with
                     tmpDict
                 let newHashset = new HashSet<int>(v1IndexArray |> Array.append(v2NotInV1))
                 SparseRow ({length = v1.length;nonzeroIndices = newHashset; nonzeroValues = newDict})
+
+    static member inline (-) ((vec1: RowVector< ^T >), (vec2: RowVector< ^T> )) : RowVector< ^T> =
+        if vec1.Dimension <> vec2.Dimension then (invalidArg "vec1,vec2" "vectors must be the same length to add them")
+        match (vec1,vec2) with
+            | (DenseRow v1,DenseRow v2) ->
+                Array.init v1.Length (fun ind -> v1.[ind] - v2.[ind]) |> DenseRow
+            | (DenseRow v1, SparseRow v2) ->
+                Array.init v1.Length (fun ind -> 
+                                        if v2.nonzeroIndices.Contains(ind) then v1.[ind] - v2.nonzeroValues.[ind]
+                                        else v1.[ind]) |> DenseRow
+            | (SparseRow v1, DenseRow v2) ->
+                Array.init v2.Length (fun ind -> 
+                                        if v1.nonzeroIndices.Contains(ind) then v1.nonzeroValues.[ind] - v2.[ind]
+                                        else (LanguagePrimitives.GenericZero< ^T> - v2.[ind])) |> DenseRow            
+            | (SparseRow v1, SparseRow v2) ->
+                let v1IndexArray = Array.zeroCreate (v1.nonzeroIndices.Count)
+                v1.nonzeroIndices.CopyTo(v1IndexArray)
+                let sumAndV1KVP = 
+                    v1IndexArray 
+                    |> Array.map(fun index -> (index, if v2.nonzeroIndices.Contains(index) then v1.nonzeroValues.[index] - v2.nonzeroValues.[index]
+                                                      else v1.nonzeroValues.[index]))
+                let v2IndexdArray = Array.zeroCreate (v2.nonzeroIndices.Count)
+                v2.nonzeroIndices.CopyTo(v2IndexdArray)
+                let v2NotInV1 = 
+                    v2IndexdArray |> Array.filter(fun a -> not (v1.nonzeroIndices.Contains(a)))
+                let newDict = 
+                    let tmpDict = new Dictionary<int, ^T>()
+                    sumAndV1KVP |> Array.iter(fun (a,b) -> tmpDict.Add(a,b))
+                    v2NotInV1 |> Array.iter(fun a -> tmpDict.Add(a,LanguagePrimitives.GenericZero< ^T> - v2.nonzeroValues.[a]))
+                    tmpDict
+                let newHashset = new HashSet<int>(v1IndexArray |> Array.append(v2NotInV1))
+                SparseRow ({length = v1.length;nonzeroIndices = newHashset; nonzeroValues = newDict})
+
+let inline innerProduct (l: RowVector< ^T>) (r:ColumnVector< ^T>) : ^T = 
+    if l.Dimension <> r.Dimension then invalidArg "l,r" "vectors must have the same length to compute inner product"
+    match l with
+        | SparseRow sl ->
+            match r with
+                | SparseColumn sr ->
+                    sl.nonzeroValues |> Seq.fold(fun sum kvp -> 
+
+                                        if sr.nonzeroIndices.Contains(kvp.Key) then sum + (kvp.Value * sr.nonzeroValues.[kvp.Key])
+                                        else sum + kvp.Value) LanguagePrimitives.GenericZero
+                | DenseColumn dr ->
+                    sl.nonzeroValues |> Seq.fold(fun sum kvp -> sum + (kvp.Value*dr.[kvp.Key])) LanguagePrimitives.GenericZero
+        | DenseRow dl ->
+            match r with
+                | SparseColumn sr ->
+                    sr.nonzeroValues |> Seq.fold(fun sum kvp -> sum + (kvp.Value*dl.[kvp.Key])) LanguagePrimitives.GenericZero
+                | DenseColumn dr ->
+                    Array.productPair dl dr |> Array.sum
