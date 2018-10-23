@@ -5,7 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="SingleThreaded/Vectors.fs" />
-    <Compile Include="SingleThreaded/BasicMatrixOperations.fs" />
     <Compile Include="SingleThreaded/Matrices.fs" />
+    <Compile Include="SingleThreaded/BasicMatrixOperations.fs" />
+    <Compile Include="MultiThreaded/MultithreadedTypes.fs" />
   </ItemGroup>
 </Project>

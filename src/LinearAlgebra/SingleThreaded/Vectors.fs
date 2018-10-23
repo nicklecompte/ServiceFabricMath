@@ -3,10 +3,11 @@ module ServiceFabricMath.Math.LinearAlgebra.Vectors
 // With the statically-resolved type parameters, F# sometimes throws
 // what I hope are extraneous warnings about type resolution errors
 // and indentation problems. I am pretty sure these are invalid :/
-#nowarn "20" "193" "58"
+#nowarn "20" "193" "58" "9" "51"
 
 open System.Collections
 open System.Collections.Generic
+open Microsoft.FSharp.NativeInterop
 
 /// Extra static extensions to Array for ease of use.
 module Array =
@@ -314,6 +315,27 @@ with
                 let newHashset = new HashSet<int>(v1IndexArray |> Array.append(v2NotInV1))
                 SparseRow ({length = v1.length;nonzeroIndices = newHashset; nonzeroValues = newDict})
 
+let inline unsafeArrayInnerProduct (l: ^T array) (r: ^T array): ^T when ^T : unmanaged and
+        ^T : (static member (+) :  ^T * ^T -> ^T ) and 
+        ^T : (static member (-) : ^T * ^T -> ^T ) and 
+        ^T : (static member (*) : ^T * ^T -> ^T) and
+        ^T : (static member Zero : ^T) =
+        try
+            let elemSize = sizeof< ^T>
+            let lStartPointer = &&(l.[0])
+            let rStartPointer = &&(r.[0])
+            let mutable sum : ^T = LanguagePrimitives.GenericZero
+            for i in 0..(l.Length - 1) do
+                sum <- sum + ((NativePtr.get lStartPointer i) * (NativePtr.get rStartPointer i))
+            sum
+        with
+        | _ -> printf "error was in unsafeArrayInnerProduct" |> ignore
+               LanguagePrimitives.GenericZero
+(*
+
+
+*)
+
 let inline innerProduct (l: RowVector< ^T>) (r:ColumnVector< ^T>) : ^T = 
     if l.Dimension <> r.Dimension then invalidArg "l,r" "vectors must have the same length to compute inner product"
     match l with
@@ -331,4 +353,4 @@ let inline innerProduct (l: RowVector< ^T>) (r:ColumnVector< ^T>) : ^T =
                 | SparseColumn sr ->
                     sr.nonzeroValues |> Seq.fold(fun sum kvp -> sum + (kvp.Value*dl.[kvp.Key])) LanguagePrimitives.GenericZero
                 | DenseColumn dr ->
-                    Array.productPair dl dr |> Array.sum
+                    unsafeArrayInnerProduct dl dr
