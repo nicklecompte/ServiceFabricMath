@@ -320,17 +320,13 @@ let inline unsafeArrayInnerProduct (l: ^T array) (r: ^T array): ^T when ^T : unm
         ^T : (static member (-) : ^T * ^T -> ^T ) and 
         ^T : (static member (*) : ^T * ^T -> ^T) and
         ^T : (static member Zero : ^T) =
-        try
-            let elemSize = sizeof< ^T>
-            let lStartPointer = &&(l.[0])
-            let rStartPointer = &&(r.[0])
-            let mutable sum : ^T = LanguagePrimitives.GenericZero
-            for i in 0..(l.Length - 1) do
-                sum <- sum + ((NativePtr.get lStartPointer i) * (NativePtr.get rStartPointer i))
-            sum
-        with
-        | _ -> printf "error was in unsafeArrayInnerProduct" |> ignore
-               LanguagePrimitives.GenericZero
+        let elemSize = sizeof< ^T>
+        let lStartPointer = &&(l.[0])
+        let rStartPointer = &&(r.[0])
+        let mutable sum : ^T = LanguagePrimitives.GenericZero
+        for i in 0..(l.Length - 1) do
+            sum <- sum + ((NativePtr.get lStartPointer i) * (NativePtr.get rStartPointer i))
+        sum
 (*
 
 
