@@ -9,5 +9,11 @@ type JobToken<'TResult> =
     | InProgress
     | Completed of 'TResult
     
-type IWorkerActor<'TResult> =
-    abstract member ReceiveJob: IJob -> JobToken<'TResult>
+type IWorkerActor<'TJob,'TResult when 'TJob :> IJob> =
+    abstract member ReceiveJob: 'TJob -> JobToken<'TResult>
+    abstract member BroadcastJobStatus : unit -> JobToken<'TResult>
+
+type IJobGiverService<'TWorker,'TJob,'TResult when
+    'TWorker :> IWorkerActor<'TJob,'TResult> and
+    'TJob :> IJob> =
+    abstract member GiveWork : 'TJob -> 'TWorker -> JobToken<'TResult>

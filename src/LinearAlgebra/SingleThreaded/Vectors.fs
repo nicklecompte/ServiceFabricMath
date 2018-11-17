@@ -1,4 +1,4 @@
-module ServiceFabricMath.Math.LinearAlgebra.Vectors
+module ServiceFabricMath.LinearAlgebra.Vectors
 
 // With the statically-resolved type parameters, F# sometimes throws
 // what I hope are extraneous warnings about type resolution errors
@@ -315,7 +315,8 @@ with
                 let newHashset = new HashSet<int>(v1IndexArray |> Array.append(v2NotInV1))
                 SparseRow ({length = v1.length;nonzeroIndices = newHashset; nonzeroValues = newDict})
 
-let inline unsafeArrayInnerProduct (l: ^T array) (r: ^T array): ^T when ^T : unmanaged and
+let inline unsafeArrayInnerProduct (l: ^T array) (r: ^T array): ^T when 
+        ^T : unmanaged and
         ^T : (static member (+) :  ^T * ^T -> ^T ) and 
         ^T : (static member (-) : ^T * ^T -> ^T ) and 
         ^T : (static member (*) : ^T * ^T -> ^T) and
@@ -332,7 +333,7 @@ let inline unsafeArrayInnerProduct (l: ^T array) (r: ^T array): ^T when ^T : unm
 
 *)
 
-let inline innerProduct (l: RowVector< ^T>) (r:ColumnVector< ^T>) : ^T = 
+let inline innerProductManagedType (l: RowVector< ^T>) (r:ColumnVector< ^T>) : ^T = 
     if l.Dimension <> r.Dimension then invalidArg "l,r" "vectors must have the same length to compute inner product"
     match l with
         | SparseRow sl ->

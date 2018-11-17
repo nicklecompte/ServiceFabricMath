@@ -1,8 +1,8 @@
 module ServiceFabricMath.LinearAlgebra.MultithreadedTypes
 
-open ServiceFabricMath.Math.LinearAlgebra
+open ServiceFabricMath.LinearAlgebra
 open Vectors
-open Matrices
+open RealMatrices
 open System.Collections.Generic
 
 [<Struct>]
@@ -13,6 +13,20 @@ type BlockMatrixCoordinate = {
     urhs: int
 }
 
+/// Type alias for a lazily-accessed matrix (a parameterless function that returns a matrix)
+type AsyncMatrix< ^T 
+    when 
+        ^T :    (static member (+) :  ^T * ^T -> ^T ) and 
+        ^T :    (static member (-) : ^T * ^T -> ^T ) and 
+        ^T :    (static member (*) : ^T * ^T -> ^T) and 
+        ^T :    (static member (/) : ^T * ^T -> ^T) and 
+        ^T :    (static member Zero : ^T) and 
+        ^T :    (static member One : ^T) and 
+        ^T :    (static member Sqrt : ^T -> ^T) and 
+        ^T :    struct and
+        ^T :    equality> 
+        = unit -> Matrix< ^T>
+
 type GeneralBlockVector< ^T 
     when 
         ^T :    (static member (+) :  ^T * ^T -> ^T ) and 
@@ -22,7 +36,6 @@ type GeneralBlockVector< ^T
         ^T :    (static member Zero : ^T) and 
         ^T :    (static member One : ^T) and 
         ^T :    (static member Sqrt : ^T -> ^T) and 
-        ^T :    unmanaged and
         ^T :    struct and
         ^T :    equality> =
     | BlockRow of seq<RowVector< ^T>>
@@ -37,10 +50,9 @@ type GeneralBlockMatrix< ^T
         ^T :    (static member Zero : ^T) and 
         ^T :    (static member One : ^T) and 
         ^T :    (static member Sqrt : ^T -> ^T) and 
-        ^T :    unmanaged and
         ^T :    struct and
         ^T :    equality> = {
-    matrices: Dictionary<BlockMatrixCoordinate, Matrix< ^T>>
+    matrices: Dictionary<BlockMatrixCoordinate, AsyncMatrix< ^T>>
     rowCount: int
     columnCount: int
 }
@@ -54,7 +66,6 @@ type BlockDiagonalMatrix< ^T
         ^T :    (static member Zero : ^T) and 
         ^T :    (static member One : ^T) and 
         ^T :    (static member Sqrt : ^T -> ^T) and 
-        ^T :    unmanaged and
         ^T :    struct and
         ^T :    equality> = {
     rowCount: int
@@ -70,7 +81,6 @@ type BlockUpperTriangularMatrix< ^T
         ^T :    (static member Zero : ^T) and 
         ^T :    (static member One : ^T) and 
         ^T :    (static member Sqrt : ^T -> ^T) and 
-        ^T :    unmanaged and
         ^T :    struct and
         ^T :    equality> = {
     rowCount: int
@@ -86,7 +96,6 @@ type MultiThreadedMatrix< ^T
         ^T :    (static member Zero : ^T) and 
         ^T :    (static member One : ^T) and 
         ^T :    (static member Sqrt : ^T -> ^T) and 
-        ^T :    unmanaged and
         ^T :    struct and
         ^T :    equality> =
     | BlockDiagonal of BlockDiagonalMatrix< ^T>

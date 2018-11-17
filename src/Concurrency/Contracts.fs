@@ -1,8 +1,9 @@
 module ServiceFabricMath.Concurrency.Contracts
 
-open ServiceFabricMath.Math.LinearAlgebra.Matrices
-open ServiceFabricMath.Math.LinearAlgebra.Vectors
-open ServiceFabricMath.LinearAlgebra.MultithreadedTypes
+open ServiceFabricMath.LinearAlgebra
+open RealMatrices
+open Vectors
+open MultithreadedTypes
 open System.Runtime.CompilerServices
 open ActorInterfaces
 
@@ -30,7 +31,7 @@ type ILinearAlgebraCalculator<'TScalar,'TVector,'TMatrix> =
 
 type ILinearAlgebraSingleThreadedActorDoublePrecision =
     inherit ILinearAlgebraCalculator<float, ColumnVector<float>, Matrix<float>>
-    inherit IWorkerActor<LinearAlgebraJobResult<float, ColumnVector<float>, Matrix<float>>>
+  //  inherit IWorkerActor<LinearAlgebraJobResult<ColumnVector<float>, Matrix<float>>>
 
 type IMultithreadedMatrixService_Float = 
     inherit ILinearAlgebraCalculator<float, GeneralBlockVector<float>, MultiThreadedMatrix<float>>

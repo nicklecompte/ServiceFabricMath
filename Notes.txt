@@ -1,0 +1,11 @@
+# Linear algebra
+
+* Single-threaded actors do "naive" additions/multiplications. 
+
+Example: Strassens algorithm
+-> service looks at a matrix, determines if
+1) it is dense/sparse/triangular/etc
+2) it can be cleanly blocked
+3) so on :)
+-> let's say it cannot be cleanly blocked and it's above some threshold size
+-> spawns four new *services* (not computation actors) that do the same on their blocks
